@@ -4,11 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project 3</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="./styles.css">
     <script type="module" src="./main.js"></script>
     <script src="https://d3js.org/d3.v7.min.js"></script>
 </head>
 <body>
-    <h2>Project 3 Line Plot</h2>
+    <div id="controls">
+        <label for="sex">Sex:</label>
+        <select id="sex">
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+        </select>
+        <label for="dataType">Data Type:</label>
+        <select id="dataType">
+            <option value="act">Activity</option>
+            <option value="temp">Temperature</option>
+        </select>
+        <label>IDs:</label>
+        <div id="id-container">
+            <label><input type="checkbox" value="1">1</label>
+            <label><input type="checkbox" value="2">2</label>
+            <label><input type="checkbox" value="3">3</label>
+            <label><input type="checkbox" value="4">4</label>
+            <label><input type="checkbox" value="5">5</label>
+            <label><input type="checkbox" value="6">6</label>
+            <label><input type="checkbox" value="7">7</label>
+            <label><input type="checkbox" value="8">8</label>
+            <label><input type="checkbox" value="9">9</label>
+            <label><input type="checkbox" value="10">10</label>
+            <label><input type="checkbox" value="11">11</label>
+            <label><input type="checkbox" value="12">12</label>
+            <label><input type="checkbox" value="13">13</label>
+            <button id="selectAll">Select All</button>
+            <button id="clearAll">Clear All</button>
+        </div>
+        <button id="updatePlot">Update Plot</button>
+    </div>
     <div id="lineplot-container"></div>
 </body>
 </html>

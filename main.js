@@ -1,12 +1,42 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
 
+let data; // Declare data in a broader scope
+let svg;
+let x;
+let y;
+let line;
+let width;
+let height;
+const idToColor = {}; // Store color for each ID
+
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadData();
+    data = await loadData(); // Load data and assign it
     createLineplot();
-  });
-  
+    document.getElementById('updatePlot').addEventListener('click', () => {
+        const sex = document.getElementById('sex').value;
+        const checkedIds = Array.from(document.querySelectorAll('#id-container input[type="checkbox"]:checked'))
+            .map(checkbox => checkbox.value);
+        const dataType = document.getElementById('dataType').value;
+        updatePlot(sex, checkedIds, dataType);
+    });
+
+    document.getElementById('selectAll').addEventListener('click', () => {
+        const checkboxes = document.querySelectorAll('#id-container input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    });
+
+    document.getElementById('clearAll').addEventListener('click', () => {
+        const checkboxes = document.querySelectorAll('#id-container input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    });
+});
+
 async function loadData() {
-    const data = await d3.csv('mouse.csv', (row) => ({
+    return await d3.csv('mouse.csv', (row) => ({
         time: +row.time,
         day: +row.day,
         hour: +row.hour,
@@ -65,71 +95,152 @@ async function loadData() {
         f12_temp: +row.f12_temp,
         f13_temp: +row.f13_temp
     }));
-
-    displayStats();
 }
 
 async function createLineplot() {
-    const margin = { top: 20, right: 30, bottom: 40, left: 50 };
-    const width = 800 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
+    const margin = { top: 50, right: 30, bottom: 40, left: 50 };
+    width = 800 - margin.left - margin.right;
+    height = 400 - margin.top - margin.bottom;
 
-    const svg = d3.select("body").append("svg")
-        .attr("width", width + margin.left + margin.right)
+    const totalWidth = width + margin.left + margin.right + 150; // Increased width for legend
+
+    svg = d3.select("#lineplot-container").append("svg")
+        .attr("width", totalWidth) // Set width to accommodate legend
         .attr("height", height + margin.top + margin.bottom)
         .append("g")
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    const data = await d3.csv('mouse.csv', d3.autoType);
-
-    const x = d3.scaleLinear()
+    x = d3.scaleLinear()
         .domain(d3.extent(data, d => d.time))
         .range([0, width]);
 
-    const y = d3.scaleLinear()
-        .domain([0, d3.max(data, d => d3.max(Object.values(d).slice(3, 16)))])
+    y = d3.scaleLinear()
+        .domain([0, d3.max(data, d => d3.max(Object.values(data[0]).slice(3)))])
         .range([height, 0]);
 
-    const line = d3.line()
+    line = d3.line()
         .x(d => x(d.time))
-        .y(d => y(d.value));
+        .y(d => d.value);
 
-    function updatePlot(group, individual, period, time, id, dataType) {
-        const filteredData = data.filter(d => {
-            if (group === 'Individual' && individual === 'male') {
-                return d[`m${id}_${dataType}`] !== undefined;
-            } else if (group === 'Individual' && individual === 'female') {
-                return d[`f${id}_${dataType}`] !== undefined;
-            } else if (group === 'Sex' && individual === 'male') {
-                return d[`m${id}_${dataType}`] !== undefined;
-            } else if (group === 'Sex' && individual === 'female') {
-                return d[`f${id}_${dataType}`] !== undefined;
-            }
-            return false;
+    // Add zoom functionality
+    const zoom = d3.zoom()
+        .scaleExtent([1, 20]) // Set zoom limits
+        .translateExtent([[0, 0], [width, height]]) // Set pan limits
+        .on("zoom", zoomed);
+
+    svg.append("rect")
+        .attr("width", width)
+        .attr("height", height)
+        .style("fill", "none")
+        .style("pointer-events", "all")
+        .call(zoom);
+
+    function zoomed(event) {
+        const transform = event.transform;
+        x.range([0, width].map(d => transform.applyX(d)));
+        y.range([height, 0].map(d => transform.applyY(d)));
+        updatePlot(document.getElementById('sex').value, Array.from(document.querySelectorAll('#id-container input[type="checkbox"]:checked')).map(checkbox => checkbox.value), document.getElementById('dataType').value);
+    }
+
+    window.updatePlot = function(sex, ids, dataType) { // Make updatePlot globally accessible
+        const maxValue = d3.max(data, d => {
+            let maxVal = 0;
+            ids.forEach(id => {
+                const val = d[`m${id}_${dataType}`] || d[`f${id}_${dataType}`];
+                if (val !== undefined && val > maxVal) {
+                    maxVal = val;
+                }
+            });
+            return maxVal;
         });
 
-        const plotData = filteredData.map(d => ({
-            time: d.time,
-            value: d[`m${id}_${dataType}`] || d[`f${id}_${dataType}`]
-        }));
+        let yDomain = [0, maxValue];
+        if (dataType === 'temp') {
+            yDomain = [0, maxValue * 1.1]; // Increase the maximum value by 10% for temperature
+        }
 
-        svg.selectAll("*").remove();
+        y = d3.scaleLinear()
+            .domain(yDomain)
+            .range([height, 0]);
+
+        svg.selectAll(".line").remove();
+        svg.selectAll(".axis").remove();
+        svg.selectAll(".title").remove(); // Remove previous title
+        svg.selectAll(".legend").remove(); // Remove previous legend
+
+        // Add title
+        svg.append("text")
+            .attr("x", (width / 2))
+            .attr("y", 0 - (margin.top / 2))
+            .attr("text-anchor", "middle")
+            .attr("class", "title")
+            .style("font-size", "16px")
+            .style("text-decoration", "underline")
+            .text(`${sex.charAt(0).toUpperCase() + sex.slice(1)} ${dataType === 'act' ? 'Activity' : 'Temperature'} Data`);
 
         svg.append("g")
+            .attr("class", "axis")
             .attr("transform", `translate(0,${height})`)
             .call(d3.axisBottom(x));
 
         svg.append("g")
+            .attr("class", "axis")
             .call(d3.axisLeft(y));
 
-        svg.append("path")
-            .datum(plotData)
-            .attr("fill", "none")
-            .attr("stroke", "steelblue")
-            .attr("stroke-width", 1.5)
-            .attr("d", line);
+        ids.forEach(id => {
+            if (!idToColor[id]) {
+                idToColor[id] = `hsl(${Math.random() * 360}, 100%, 50%)`;
+            }
+            const filteredData = data.filter(d => {
+                if (sex === 'male') {
+                    return d[`m${id}_${dataType}`] !== undefined;
+                } else if (sex === 'female') {
+                    return d[`f${id}_${dataType}`] !== undefined;
+                }
+                return false;
+            });
+
+            const plotData = filteredData.map(d => ({
+                time: d.time,
+                value: d[`m${id}_${dataType}`] || d[`f${id}_${dataType}`]
+            }));
+
+            svg.append("path")
+                .datum(plotData)
+                .attr("fill", "none")
+                .attr("stroke", idToColor[id]) // Use stored color
+                .attr("stroke-width", 1.5)
+                .attr("d", line.y(d => y(d.value))) // Update the y position based on the new scale
+                .attr("class", `line line-${id}`); // Add a class to each line
+        });
+
+        // Add legend
+        const legend = svg.append("g")
+            .attr("class", "legend")
+            .attr("transform", `translate(${width + 50}, 20)`); // Adjust position
+
+        ids.forEach((id, i) => {
+            legend.append("rect")
+                .attr("x", 0) // Position to the right of the plot
+                .attr("y", i * 20)
+                .attr("width", 10)
+                .attr("height", 10)
+                .style("fill", idToColor[id]);
+
+            legend.append("text")
+                .attr("x", 15) // Position to the right of the plot
+                .attr("y", i * 20 + 9)
+                .text(`ID ${id}`)
+                .style("font-size", "12px")
+                .attr("alignment-baseline", "middle");
+        });
+
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x));
     }
 
-    // Example usage
-    updatePlot('Individual', 'male', 'All', 'All', 1, 'act');
+    // Initial plot
+    updatePlot('male', ['1'], 'act');
 }
