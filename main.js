@@ -7,7 +7,7 @@ let y;
 let line;
 let width;
 let height;
-const idToColor = {}; // Store color for each ID
+let tooltip;
 
 document.addEventListener('DOMContentLoaded', async () => {
     data = await loadData(); // Load data and assign it
@@ -111,7 +111,7 @@ async function createLineplot() {
         .attr("transform", `translate(${margin.left},${margin.top})`);
 
     x = d3.scaleLinear()
-        .domain(d3.extent(data, d => d.time))
+        .domain([0, d3.max(data, d => d.time)])
         .range([0, width]);
 
     y = d3.scaleLinear()
@@ -138,9 +138,36 @@ async function createLineplot() {
     function zoomed(event) {
         const transform = event.transform;
         x.range([0, width].map(d => transform.applyX(d)));
-        y.range([height, 0].map(d => transform.applyY(d)));
-        updatePlot(document.getElementById('sex').value, Array.from(document.querySelectorAll('#id-container input[type="checkbox"]:checked')).map(checkbox => checkbox.value), document.getElementById('dataType').value);
+
+        // Update x-axis with zoom
+        svg.selectAll(".axis.x").remove();
+
+        let tickFormat;
+        if (transform.k > 4) {
+            tickFormat = d => `Day ${Math.floor(d / 24) + 1}, Hour ${d % 24}`;
+        } else {
+            tickFormat = d => `Day ${Math.floor(d / 24) + 1}`;
+        }
+
+        svg.append("g")
+            .attr("class", "axis x")
+            .attr("transform", `translate(0,${height})`)
+            .call(d3.axisBottom(x)
+                .ticks(width / (transform.k * 50))
+                .tickFormat(tickFormat));
+
+        // Update the plot with the new scales
+        updatePlot(document
+            .getElementById('sex')
+            .value, 
+            Array.from(document.querySelectorAll('#id-container input[type="checkbox"]:checked'))
+            .map(checkbox => checkbox.value), 
+            document.getElementById('dataType')
+            .value);
     }
+
+    // Initialize tooltip
+    tooltip = d3.select("#tooltip");
 
     window.updatePlot = function(sex, ids, dataType) { // Make updatePlot globally accessible
         const maxValue = d3.max(data, d => {
@@ -167,6 +194,36 @@ async function createLineplot() {
         svg.selectAll(".axis").remove();
         svg.selectAll(".title").remove(); // Remove previous title
         svg.selectAll(".legend").remove(); // Remove previous legend
+        svg.selectAll(".night-bg").remove(); // Remove previous night backgrounds
+        svg.selectAll(".estrus-bg").remove(); // Remove previous estrus backgrounds
+        svg.selectAll(".grid").remove(); // Remove previous grid
+
+        // Add background rectangles for night and estrus
+        data.forEach((d, i) => {
+            if (d.is_night) {
+                svg.append("rect")
+                    .attr("class", "night-bg")
+                    .attr("x", x(d.time))
+                    .attr("y", 0)
+                    .attr("width", i < data.length - 1 ? x(data[i + 1].time) - x(d.time) : width - x(d.time))
+                    .attr("height", height)
+                    .style("fill", "rgba(0, 0, 255, 0.7)") // Light blue
+                    .lower();
+            }
+        });
+
+        data.forEach((d, i) => {
+            if (d.is_estrus) {
+                svg.append("rect")
+                    .attr("class", "estrus-bg")
+                    .attr("x", x(d.time))
+                    .attr("y", 0)
+                    .attr("width", i < data.length - 1 ? x(data[i + 1].time) - x(d.time) : width - x(d.time))
+                    .attr("height", height)
+                    .style("fill", "rgba(255, 0, 0, 0.7)") // Light red
+                    .lower();
+            }
+        });
 
         // Add title
         svg.append("text")
@@ -181,43 +238,71 @@ async function createLineplot() {
         svg.append("g")
             .attr("class", "axis")
             .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x));
+            .call(d3.axisBottom(x)
+                .tickFormat(d => `Day ${Math.floor(d / 24) + 1}, Hour ${d % 24}`));
 
         svg.append("g")
             .attr("class", "axis")
             .call(d3.axisLeft(y));
 
+        // Add Y-axis grid lines
+        svg.append("g")
+            .attr("class", "grid")
+            .call(d3.axisLeft(y)
+                .ticks(10) // Adjust the number of ticks as needed
+                .tickSize(-width) // Make the lines span the entire plot width
+                .tickFormat("") // Remove the tick labels
+            );
+
         ids.forEach(id => {
-            if (!idToColor[id]) {
-                idToColor[id] = `hsl(${Math.random() * 360}, 100%, 50%)`;
-            }
             const filteredData = data.filter(d => {
-                if (sex === 'male') {
-                    return d[`m${id}_${dataType}`] !== undefined;
-                } else if (sex === 'female') {
-                    return d[`f${id}_${dataType}`] !== undefined;
-                }
-                return false;
+                let prefix = sex === 'male' ? 'm' : 'f';
+                let dataColumn = `${prefix}${id}_${dataType}`;
+                return d[dataColumn] !== undefined;
             });
 
             const plotData = filteredData.map(d => ({
                 time: d.time,
-                value: d[`m${id}_${dataType}`] || d[`f${id}_${dataType}`]
+                value: d[`${sex === 'male' ? 'm' : 'f'}${id}_${dataType}`]
             }));
 
             svg.append("path")
                 .datum(plotData)
                 .attr("fill", "none")
-                .attr("stroke", idToColor[id]) // Use stored color
                 .attr("stroke-width", 1.5)
                 .attr("d", line.y(d => y(d.value))) // Update the y position based on the new scale
-                .attr("class", `line line-${id}`); // Add a class to each line
+                .attr("class", `line line-${id}`) // Add a class to each line
+                .on("mouseover", function(event, d) {
+                    tooltip.style("display", "block");
+                })
+                .on("mouseout", function(event, d) {
+                    tooltip.style("display", "none");
+                })
+                .on("mousemove", function(event, d) {
+                    const [xPos, yPos] = d3.pointer(event);
+                    const bisect = d3.bisector(d => d.time).left;
+                    const x0 = x.invert(xPos);
+                    const i = bisect(d, x0, 1);
+                    const d0 = d[i - 1];
+                    const d1 = d[i];
+                    const dataPoint = x0 - d0.time > d1.time - x0 ? d1 : d0;
+
+                    tooltip.html(`Day: ${Math.floor(dataPoint.time / 24) + 1}, Hour: ${dataPoint.time % 24}, Value: ${dataPoint.value}`)
+                        .style("left", (event.pageX + 10) + "px")
+                        .style("top", (event.pageY - 15) + "px");
+                });
         });
 
         // Add legend
         const legend = svg.append("g")
-            .attr("class", "legend")
-            .attr("transform", `translate(${width + 50}, 20)`); // Adjust position
+            .attr("class", "legend");
+
+        // Calculate legend position based on zoom transform
+        const currentTransform = d3.zoomTransform(svg.node());
+        const legendX = width + 20; // Position to the right of the plot
+        const legendY = 0;
+
+        legend.attr("transform", `translate(${legendX},${legendY})`);
 
         ids.forEach((id, i) => {
             legend.append("rect")
@@ -225,7 +310,8 @@ async function createLineplot() {
                 .attr("y", i * 20)
                 .attr("width", 10)
                 .attr("height", 10)
-                .style("fill", idToColor[id]);
+                .attr("class", `line-${id}`)
+                .style("fill",  function() { return window.getComputedStyle(this).getPropertyValue("stroke"); });
 
             legend.append("text")
                 .attr("x", 15) // Position to the right of the plot
@@ -238,9 +324,10 @@ async function createLineplot() {
         svg.append("g")
             .attr("class", "axis")
             .attr("transform", `translate(0,${height})`)
-            .call(d3.axisBottom(x));
+            .call(d3.axisBottom(x)
+                .tickFormat(d => `Day ${Math.floor(d / 24) + 1}, Hour ${d % 24}`));
     }
 
     // Initial plot
-    updatePlot('male', ['1'], 'act');
+    updatePlot('male', ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'], 'act');
 }

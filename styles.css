@@ -82,6 +82,31 @@ h2 {
     width: 90%; /* Adjust width */
     overflow: visible; /* Ensure title is not cut off */
     height: 450px; /* Added height */
+    position: relative; /* Added position relative */
+}
+
+.legend {
+    /* position: absolute; Position legend absolutely */
+    /* right: 70px; Adjust right position */
+    /* top: 20px; Adjust top position */
+}
+
+.night-bg {
+    z-index: 0; /* Ensure background is behind */
+}
+
+.line {
+    z-index: 1; /* Ensure lines are in front */
+}
+
+.grid line {
+    stroke: rgba(0, 0, 0, 0.1); /* Light grey color */
+    stroke-width: 0.5px;
+    shape-rendering: crispEdges;
+}
+
+.grid path {
+    stroke-width: 0px;
 }
 
 /* Add some responsive design */
@@ -97,7 +122,70 @@ h2 {
         max-width: 300px;
     }
 
-    #lineplot-container {
+    #lineplot-container {    
         width: 60%;
-    }
+}
+}
+
+/* Add this to your styles.css */
+#tooltip {
+    position: absolute;
+    background-color: white;
+    border: 1px solid black;
+    padding: 5px;
+    display: none;
+    z-index: 10; /* Ensure it's on top */
+}
+
+/* Add color definitions for each line */
+.line-1 {
+    stroke: hsl(0, 100%, 50%); /* Red */
+}
+
+.line-2 {
+    stroke: hsl(60, 100%, 50%); /* Yellow */
+}
+
+.line-3 {
+    stroke: hsl(120, 100%, 25%); /* Green */
+}
+
+.line-4 {
+    stroke: hsl(180, 100%, 25%); /* Cyan */
+}
+
+.line-5 {
+    stroke: hsl(240, 100%, 50%); /* Blue */
+}
+
+.line-6 {
+    stroke: hsl(300, 100%, 25%); /* Magenta */
+}
+
+.line-7 {
+    stroke: hsl(30, 100%, 50%); /* Orange */
+}
+
+.line-8 {
+    stroke: hsl(90, 100%, 25%); /* Light Green */
+}
+
+.line-9 {
+    stroke: hsl(210, 100%, 25%); /* Light Blue */
+}
+
+.line-10 {
+    stroke: hsl(270, 100%, 25%); /* Violet */
+}
+
+.line-11 {
+    stroke: hsl(330, 100%, 50%); /* Pink */
+}
+
+.line-12 {
+    stroke: hsl(150, 100%, 25%); /* Sea Green */
+}
+
+.line-13 {
+    stroke: hsl(30, 70%, 70%); /* Pastel Orange */
 }
