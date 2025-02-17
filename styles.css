@@ -8,11 +8,7 @@ body {
     align-items: center;
     justify-content: flex-start; /* Align items to the start */
     min-height: 100vh; /* Ensure full height */
-}
-
-h2 {
-    color: #333;
-    margin-top: 20px;
+    margin-top: 20px; /* Add margin to the top */
 }
 
 #controls {
@@ -85,12 +81,6 @@ h2 {
     position: relative; /* Added position relative */
 }
 
-.legend {
-    /* position: absolute; Position legend absolutely */
-    /* right: 70px; Adjust right position */
-    /* top: 20px; Adjust top position */
-}
-
 .night-bg {
     z-index: 0; /* Ensure background is behind */
 }
@@ -103,6 +93,7 @@ h2 {
     stroke: rgba(0, 0, 0, 0.1); /* Light grey color */
     stroke-width: 0.5px;
     shape-rendering: crispEdges;
+    z-index: -1;
 }
 
 .grid path {
@@ -135,6 +126,65 @@ h2 {
     padding: 5px;
     display: none;
     z-index: 10; /* Ensure it's on top */
+}
+
+#scatterplot-container {
+    margin-top: 20px;
+    width: 95%; /* Adjust width */
+    height: 650px; /* Adjust height */
+    max-width: 1200px; /* Added max-width */
+}
+
+#scatterplot-controls {
+    background-color: #fff;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    display: none;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 80%; /* Adjust width */
+    max-width: 400px; /* Adjust max-width */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+#scatterplot-controls label {
+    margin-bottom: 5px;
+    color: #555;
+}
+
+#scatterplot-controls select,
+#scatterplot-controls button {
+    margin-bottom: 15px;
+    padding: 8px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#scatterplot-controls button {
+    background-color: #5cb85c;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#scatterplot-controls button:hover {
+    background-color: #449d44;
+}
+
+.correlation-line {
+    stroke: black;
+    stroke-width: 2;
+}
+
+.axis-label {
+    font-size: 12px;
+    font-weight: bold;
+    fill: #555;
 }
 
 /* Add color definitions for each line */
@@ -188,4 +238,43 @@ h2 {
 
 .line-13 {
     stroke: hsl(30, 70%, 70%); /* Pastel Orange */
+}
+
+.estrus-bg {
+    fill: rgba(255, 0, 255, 0.1); /* Light magenta */
+    pointer-events: none; /* Make sure it doesn't interfere with mouse events */
+    z-index: -1; /* Ensure background is behind */
+}
+
+.button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+    display: none;
+}
+
+#comparePlot {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+    transition-duration: 0.4s;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+}
+
+#comparePlot:hover {
+    background-color: white;
+    color: black;
+    border: 2px solid #4CAF50;
+}
+
+#observe {
+    background-color: #4CAF50; /* Green */
 }

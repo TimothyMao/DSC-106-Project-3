@@ -1,4 +1,5 @@
 import * as d3 from "https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm";
+import { createScatterplot, updateScatterplot } from './scatterplot.js';
 
 let data; // Declare data in a broader scope
 let svg;
@@ -8,6 +9,10 @@ let line;
 let width;
 let height;
 let tooltip;
+let currentSex = 'male';
+let currentIds = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'];
+let currentDataType = 'act';
+let scatterplotCreated = false;
 
 document.addEventListener('DOMContentLoaded', async () => {
     data = await loadData(); // Load data and assign it
@@ -18,6 +23,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             .map(checkbox => checkbox.value);
         const dataType = document.getElementById('dataType').value;
         updatePlot(sex, checkedIds, dataType);
+        currentSex = sex;
+        currentIds = checkedIds;
+        currentDataType = dataType;
     });
 
     document.getElementById('selectAll').addEventListener('click', () => {
@@ -33,6 +41,69 @@ document.addEventListener('DOMContentLoaded', async () => {
             checkbox.checked = false;
         });
     });
+
+    const compareButton = document.getElementById('observe');
+    compareButton.addEventListener('click', () => {
+        const lineplotContainer = document.getElementById('lineplot-container');
+        const scatterplotContainer = document.getElementById('scatterplot-container');
+        const scatterplotControls = document.getElementById('scatterplot-controls');
+        const lineplotControls = document.getElementById('controls'); // Lineplot controls
+
+        if (lineplotContainer.style.display !== 'none') {
+            // Show scatterplot, hide lineplot
+            lineplotContainer.style.display = 'none';
+            scatterplotContainer.style.display = 'block';
+            scatterplotControls.style.display = 'block'; // Show scatterplot controls
+            lineplotControls.style.display = 'none'; // Hide lineplot controls
+            compareButton.textContent = 'Observe';
+
+            const sex = document.getElementById('sex').value;
+            const checkedIds = Array.from(document.querySelectorAll('#id-container input[type="checkbox"]:checked'))
+                .map(checkbox => checkbox.value);
+
+            // Remove existing scatterplot
+            d3.select("#scatterplot-container").selectAll("*").remove();
+
+            if (!scatterplotCreated) {
+                createScatterplot(data, sex, checkedIds[0], currentDataType);
+                scatterplotCreated = true;
+            } else {
+                updateScatterplot(data, sex, checkedIds[0], currentDataType, 'all', 'all');
+            }
+        } else {
+            // Show lineplot, hide scatterplot
+            lineplotContainer.style.display = 'block';
+            scatterplotContainer.style.display = 'none';
+            scatterplotControls.style.display = 'none'; // Hide scatterplot controls
+            lineplotControls.style.display = 'block'; // Show lineplot controls
+            compareButton.textContent = 'Compare';
+            scatterplotCreated = false; // Reset the flag
+        }
+    });
+
+    document.getElementById('updateScatterplot').addEventListener('click', () => {
+        const scatterplotSex = document.getElementById('scatterplotSex').value;
+        const scatterplotId = document.getElementById('scatterplotId').value;
+        const dayNight = document.getElementById('dayNight').value;
+        const estrus = document.getElementById('estrus').value;
+        updateScatterplot(data, scatterplotSex, scatterplotId, currentDataType, dayNight, estrus);
+    });
+
+    const observeButton = document.createElement('button');
+    observeButton.id = 'observe';
+    observeButton.textContent = 'Observe';
+    observeButton.addEventListener('click', () => {
+        const lineplotContainer = document.getElementById('lineplot-container');
+        const scatterplotContainer = document.getElementById('scatterplot-container');
+        const scatterplotControls = document.getElementById('scatterplot-controls');
+        const lineplotControls = document.getElementById('controls'); // Lineplot controls
+        lineplotContainer.style.display = 'block';
+        scatterplotContainer.style.display = 'none';
+        scatterplotControls.style.display = 'none'; // Hide scatterplot controls
+        lineplotControls.style.display = 'block'; // Show lineplot controls
+        compareButton.textContent = 'Compare';
+    });
+    document.getElementById('scatterplot-controls').appendChild(observeButton);
 });
 
 async function loadData() {
@@ -40,8 +111,8 @@ async function loadData() {
         time: +row.time,
         day: +row.day,
         hour: +row.hour,
-        is_night: row.is_night === '1',
-        is_estrus: row.is_estrus === '1',
+        is_night: row.is_night === 'True',
+        is_estrus: row.is_estrus === 'True',
         m1_act: +row.m1_act,
         m2_act: +row.m2_act,
         m3_act: +row.m3_act,
@@ -198,33 +269,6 @@ async function createLineplot() {
         svg.selectAll(".estrus-bg").remove(); // Remove previous estrus backgrounds
         svg.selectAll(".grid").remove(); // Remove previous grid
 
-        // Add background rectangles for night and estrus
-        data.forEach((d, i) => {
-            if (d.is_night) {
-                svg.append("rect")
-                    .attr("class", "night-bg")
-                    .attr("x", x(d.time))
-                    .attr("y", 0)
-                    .attr("width", i < data.length - 1 ? x(data[i + 1].time) - x(d.time) : width - x(d.time))
-                    .attr("height", height)
-                    .style("fill", "rgba(0, 0, 255, 0.7)") // Light blue
-                    .lower();
-            }
-        });
-
-        data.forEach((d, i) => {
-            if (d.is_estrus) {
-                svg.append("rect")
-                    .attr("class", "estrus-bg")
-                    .attr("x", x(d.time))
-                    .attr("y", 0)
-                    .attr("width", i < data.length - 1 ? x(data[i + 1].time) - x(d.time) : width - x(d.time))
-                    .attr("height", height)
-                    .style("fill", "rgba(255, 0, 0, 0.7)") // Light red
-                    .lower();
-            }
-        });
-
         // Add title
         svg.append("text")
             .attr("x", (width / 2))
@@ -253,6 +297,19 @@ async function createLineplot() {
                 .tickSize(-width) // Make the lines span the entire plot width
                 .tickFormat("") // Remove the tick labels
             );
+
+        // Add background for is_estrus
+        const estrusData = data.filter(d => d.is_estrus);
+        svg.selectAll(".estrus-bg")
+            .data(estrusData)
+            .enter().append("rect")
+            .attr("class", "estrus-bg")
+            .attr("x", d => x(d.time))
+            .attr("y", 0)
+            .attr("width", width / data.length) // Adjust width as needed
+            .attr("height", height)
+            .attr("fill", "pink")
+            .style("opacity", 0.3);
 
         ids.forEach(id => {
             const filteredData = data.filter(d => {
