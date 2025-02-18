@@ -1,5 +1,5 @@
 body {
-    font-family: 'Arial', sans-serif;
+    font-family: 'Inter', sans-serif;
     background-color: #f4f4f4;
     margin: 0;
     padding: 0;
@@ -151,7 +151,7 @@ body {
 
 #scatterplot-controls label {
     margin-bottom: 5px;
-    color: #555;
+    color: #6d6d6d;
 }
 
 #scatterplot-controls select,
@@ -184,7 +184,7 @@ body {
 .axis-label {
     font-size: 12px;
     font-weight: bold;
-    fill: #555;
+    fill: #6d6d6d;
 }
 
 /* Add color definitions for each line */
