@@ -56,10 +56,8 @@ export function createScatterplot(data, sex = 'male', id, dataType) {
         scatterSvg.select(".x-axis").call(d3.axisBottom(scatterX));
         scatterSvg.select(".y-axis").call(d3.axisLeft(scatterY));
 
-        // Update grid
         updateGrid();
 
-        // Recalculate and redraw the correlation line
         const activityColumn = `${sex === 'male' ? 'm' : 'f'}${id}_act`;
         const temperatureColumn = `${sex === 'male' ? 'm' : 'f'}${id}_temp`;
         const filteredData = data.filter(d => (
@@ -110,17 +108,17 @@ export function updateScatterplot(data, sex, id, dataType, dayNight, estrus) {
     const activityData = filteredData.map(d => d[activityColumn]);
     const temperatureData = filteredData.map(d => d[temperatureColumn]);
 
-    // Update scale domains after filtering
+    // Updated scale domains after filtering
     if (activityData.length > 0) {
         scatterX.domain([0, d3.max(activityData)]);
     } else {
-        scatterX.domain([0, 1]); // Set a default domain if no data
+        scatterX.domain([0, 1]); //default domain if no data
     }
 
     if (temperatureData.length > 0) {
         scatterY.domain([0, d3.max(temperatureData)]);
     } else {
-        scatterY.domain([0, 1]); // Set a default domain if no data
+        scatterY.domain([0, 1]); //default domain if no data
     }
 
     // Calculate linear regression
@@ -286,7 +284,5 @@ function updateGrid() {
             .tickFormat("") // Remove the tick labels
         );
 
-    // Ensure grid lines are behind the data points
-    scatterSvg.selectAll(".grid")
-        .lower();
+    scatterSvg.selectAll(".grid").lower();
 }
