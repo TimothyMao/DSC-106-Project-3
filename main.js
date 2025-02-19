@@ -47,37 +47,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         const lineplotContainer = document.getElementById('lineplot-container');
         const scatterplotContainer = document.getElementById('scatterplot-container');
         const scatterplotControls = document.getElementById('scatterplot-controls');
-        const lineplotControls = document.getElementById('controls'); // Lineplot controls
+        const lineplotControls = document.getElementById('controls');
 
-        if (lineplotContainer.style.display !== 'none') {
-            // Show scatterplot, hide lineplot
+        if (compareButton.textContent === 'Compare') {
+            // Switch to scatterplot view
             lineplotContainer.style.display = 'none';
             scatterplotContainer.style.display = 'block';
-            scatterplotControls.style.display = 'block'; // Show scatterplot controls
-            lineplotControls.style.display = 'none'; // Hide lineplot controls
+            scatterplotControls.style.display = 'block';
+            lineplotControls.style.display = 'none';
             compareButton.textContent = 'Observe';
 
             const sex = document.getElementById('sex').value;
             const checkedIds = Array.from(document.querySelectorAll('#id-container input[type="checkbox"]:checked'))
                 .map(checkbox => checkbox.value);
 
-            // Remove existing scatterplot
+            // Clear the container and create new scatterplot
             d3.select("#scatterplot-container").selectAll("*").remove();
-
-            if (!scatterplotCreated) {
-                createScatterplot(data, sex, checkedIds[0], currentDataType);
-                scatterplotCreated = true;
-            } else {
-                updateScatterplot(data, sex, checkedIds[0], currentDataType, 'all', 'all');
-            }
+            createScatterplot(data, sex, checkedIds[0], currentDataType);
+            scatterplotCreated = true;
         } else {
-            // Show lineplot, hide scatterplot
+            // Switch to lineplot view
             lineplotContainer.style.display = 'block';
             scatterplotContainer.style.display = 'none';
-            scatterplotControls.style.display = 'none'; // Hide scatterplot controls
-            lineplotControls.style.display = 'block'; // Show lineplot controls
+            scatterplotControls.style.display = 'none';
+            lineplotControls.style.display = 'block';
             compareButton.textContent = 'Compare';
-            scatterplotCreated = false; // Reset the flag
         }
     });
 
